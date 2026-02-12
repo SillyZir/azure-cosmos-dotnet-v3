@@ -312,6 +312,24 @@ namespace Microsoft.Azure.Cosmos
         }
 
         /// <summary>
+        /// Gets the regions ordered by proximity to the account's location.
+        /// This is populated from the account properties response during initialization and background refresh.
+        /// </summary>
+        internal Collection<string> RegionProximity { get; private set; } = new Collection<string>();
+
+        /// <summary>
+        /// Sets the region proximity list from account properties.
+        /// </summary>
+        /// <param name="regionProximity">The region proximity list from account properties.</param>
+        internal void SetRegionProximity(Collection<string> regionProximity)
+        {
+            if (regionProximity != null && regionProximity.Count > 0)
+            {
+                this.RegionProximity = regionProximity;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the flag to enable endpoint discovery for geo-replicated database accounts in the Azure Cosmos DB service.
         /// </summary>
         /// <remarks>

@@ -555,7 +555,7 @@ namespace Microsoft.Azure.Cosmos.Routing
         }
 
         /// <summary>
-        /// Parse thinClientWritableLocations / thinClientReadableLocations from AdditionalProperties. 
+        /// Parse thinClientWritableLocations / thinClientReadableLocations / regionProximity from AdditionalProperties. 
         /// </summary>
         private static void ParseThinClientLocationsFromAdditionalProperties(AccountProperties databaseAccount)
         {
@@ -573,6 +573,30 @@ namespace Microsoft.Azure.Cosmos.Routing
                     databaseAccount.ThinClientReadableLocationsInternal = ParseAccountRegionArray(readableArray);
                 }
             }
+        }
+
+        private static void ParseRegionProximityFromAdditionalProperties(AccountProperties databaseAccount)
+        {
+            if (databaseAccount?.AdditionalProperties != null
+                && databaseAccount.AdditionalProperties.TryGetValue("regionProximity", out JToken proximityToken)
+                && proximityToken is JArray proximityArray)
+            {
+                databaseAccount.RegionProximityInternal = ParseRegionProximityArray(proximityArray);
+            }
+        }
+
+        private static Collection<string> ParseRegionProximityArray(JArray array)
+        {
+            Collection<string> result = new Collection<string>();
+            foreach (JToken token in array)
+            {
+                string? region = token?.ToString();
+                if (!string.IsNullOrEmpty(region))
+                {
+                    result.Add(region!);
+                }
+            }
+            return result;
         }
 
         private static Collection<AccountRegion> ParseAccountRegionArray(JArray array)
@@ -613,6 +637,9 @@ namespace Microsoft.Azure.Cosmos.Routing
             }
 
             GlobalEndpointManager.ParseThinClientLocationsFromAdditionalProperties(databaseAccount);
+            GlobalEndpointManager.ParseRegionProximityFromAdditionalProperties(databaseAccount);
+
+            this.connectionPolicy.SetRegionProximity(databaseAccount.RegionProximityInternal);
 
             this.locationCache.OnDatabaseAccountRead(databaseAccount);
 
@@ -777,6 +804,9 @@ namespace Microsoft.Azure.Cosmos.Routing
                 }
 
                 GlobalEndpointManager.ParseThinClientLocationsFromAdditionalProperties(accountProperties);
+                GlobalEndpointManager.ParseRegionProximityFromAdditionalProperties(accountProperties);
+
+                this.connectionPolicy.SetRegionProximity(accountProperties.RegionProximityInternal);
 
                 this.locationCache.OnDatabaseAccountRead(accountProperties);
 
