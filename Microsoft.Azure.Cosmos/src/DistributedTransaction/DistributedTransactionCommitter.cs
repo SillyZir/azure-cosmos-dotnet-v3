@@ -15,9 +15,6 @@ namespace Microsoft.Azure.Cosmos
 
     internal class DistributedTransactionCommitter
     {
-        // TODO: Move to HttpConstants.HttpHeaders once DTC headers are added centrally
-        private const string IdempotencyTokenHeader = "x-ms-dtc-operation-id";
-
         private readonly IReadOnlyList<DistributedTransactionOperation> operations;
         private readonly CosmosClientContext clientContext;
 
@@ -64,15 +61,15 @@ namespace Microsoft.Azure.Cosmos
                 using (MemoryStream bodyStream = serverRequest.TransferBodyStream())
                 {
                     ResponseMessage responseMessage = await this.clientContext.ProcessResourceOperationStreamAsync(
-                        resourceUri: "/dtc/ops",
-                        resourceType: ResourceType.Document, // TODO: Update to a new ResourceType specific to DTC
-                        operationType: OperationType.Batch, // TODO: Update to a new OperationType specific to DTC
+                        resourceUri: DistributedTransactionCommitter.GetResourceUri(),
+                        resourceType: ResourceType.DistributedTransactionBatch,
+                        operationType: OperationType.CommitDistributedTransaction,
                         requestOptions: null,
                         cosmosContainerCore: null,
                         partitionKey: null,
                         itemId: null,
                         streamPayload: bodyStream,
-                        requestEnricher: requestMessage => this.EnrichRequestMessage(requestMessage, serverRequest),
+                        requestEnricher: requestMessage => DistributedTransactionCommitter.EnrichRequestMessage(requestMessage, serverRequest),
                         trace: trace,
                         cancellationToken: cancellationToken);
 
@@ -89,10 +86,17 @@ namespace Microsoft.Azure.Cosmos
             }
         }
 
-        private void EnrichRequestMessage(RequestMessage requestMessage, DistributedTransactionServerRequest serverRequest)
+        private static string GetResourceUri()
+        {
+            return Paths.OperationsPathSegment + "/" + Paths.Operations_Dtc;
+        }
+
+        private static void EnrichRequestMessage(RequestMessage requestMessage, DistributedTransactionServerRequest serverRequest)
         {
             // Set DTC-specific headers
-            requestMessage.Headers.Add(IdempotencyTokenHeader, serverRequest.IdempotencyToken.ToString());
+            requestMessage.Headers.Add(HttpConstants.HttpHeaders.IdempotencyToken, serverRequest.IdempotencyToken.ToString());
+            requestMessage.Headers.Add(HttpConstants.HttpHeaders.OperationType, requestMessage.OperationType.ToString());
+            requestMessage.Headers.Add(HttpConstants.HttpHeaders.ResourceType, requestMessage.ResourceType.ToString());
             requestMessage.UseGatewayMode = true;
         }
 
