@@ -167,6 +167,8 @@ namespace Microsoft.Azure.Cosmos.Properties {
         private static string GetNormalizedFile(string filewithPath)
         {
             if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
+
+            if (Environment.OSVersion.Platform != PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
             {
                 return filewithPath.Replace("\\", "/");
             }
